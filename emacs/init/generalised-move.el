@@ -222,6 +222,19 @@ The column, if non-nil, will be strictly before or after the character at point.
             (push next-segment segments))))
       segments)))
 
+(defun generalised-move--clamp-writable (N)
+  "Returns a relative character displacement with absolute value less than or equal to N
+consisting of writable characters from point."
+  (let ((x 0)
+        (end_cond (cond ((>= N 0) (lambda (x) (< x N)))
+                        ((< N 0)  (lambda (x) (> x N)))))
+        (next (cond ((>= N 0) (lambda (x) (+ x 1)))
+                    ((< N 0)  (lambda (x) (- x 1))))))
+    (while (and (funcall end_cond x)
+                (not (get-text-property (+ (point) (funcall next x)) 'read-only)))
+      (setq x (funcall next x)))
+    x))
+
 (defun generalised-kill-word (&optional backward)
   (let* ((segments (generalised-word-target backward (not backward)))
          (target-pos (when segments
@@ -231,6 +244,8 @@ The column, if non-nil, will be strictly before or after the character at point.
                         (first segments))))
          (to-delete (when target-pos
                       (- target-pos (point))))
+         (to-delete-clamped (when to-delete
+                              (generalised-move--clamp-writable to-delete)))
          (to-insert (when segments
                       (cond (overwrite-mode (funcall
                                              (cond (backward #'identity)
@@ -250,7 +265,7 @@ The column, if non-nil, will be strictly before or after the character at point.
          (to-move (when (and segments overwrite-mode)
                     (cond (backward (- (or (segment-tabstop-left-offset (first segments)) 0) (length to-insert)))
                           (t        (- (or (segment-tabstop-right-offset (first segments)) 0)))))))
-    (when to-delete (delete-char to-delete))
+    (when to-delete-clamped (delete-char to-delete-clamped))
     (when to-insert (insert to-insert))
     (when to-move   (forward-char to-move))))
 
