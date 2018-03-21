@@ -265,7 +265,7 @@ consisting of writable characters from point."
          (to-move (when (and segments overwrite-mode)
                     (cond (backward (- (or (segment-tabstop-left-offset (first segments)) 0) (length to-insert)))
                           (t        (- (or (segment-tabstop-right-offset (first segments)) 0)))))))
-    (when to-delete-clamped (delete-char to-delete-clamped))
+    (when to-delete-clamped (kill-region (point) (+ (point) to-delete-clamped)))
     (when to-insert (insert to-insert))
     (when to-move   (forward-char to-move))))
 
