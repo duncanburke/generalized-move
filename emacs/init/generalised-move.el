@@ -228,10 +228,13 @@ consisting of writable characters from point."
   (let ((x 0)
         (end_cond (cond ((>= N 0) (lambda (x) (< x N)))
                         ((< N 0)  (lambda (x) (> x N)))))
-        (next (cond ((>= N 0) (lambda (x) (+ x 1)))
-                    ((< N 0)  (lambda (x) (- x 1))))))
+        (next     (cond ((>= N 0) (lambda (x) (+ x 1)))
+                        ((< N 0)  (lambda (x) (- x 1)))))
+        (test_pos (cond ((>= N 0) (lambda (x) (+ (point) x)))
+                        ((< N 0)  (lambda (x) (+ (point) (funcall next x))))))
+        )
     (while (and (funcall end_cond x)
-                (not (get-text-property (+ (point) (funcall next x)) 'read-only)))
+                (not (get-text-property (funcall test_pos x) 'read-only)))
       (setq x (funcall next x)))
     x))
 
@@ -258,7 +261,8 @@ consisting of writable characters from point."
                                                        (segment-width segment)
                                                        (cond ((eq 'linefeed (segment-class segment)) ?\C-j)
                                                              (t                                      ? )))
-                                                      ) segments))
+                                                      )
+                                                    segments))
                                              ))
                             (t (cond (backward (make-string (or (segment-tabstop-left-offset (first segments)) 0) ? ))
                                      (t ""))))))
@@ -294,5 +298,30 @@ consisting of writable characters from point."
 (defun generalised-forward-word ()
   (interactive)
   (generalised-move-by-word nil))
+
+(defun backward-kill-line-safe (arg)
+  "Kill chars backward until encountering the end of a line."
+  (interactive "p")
+  (kill-line-safe t))
+
+(defun forward-kill-line-safe (arg)
+  "Kill chars backward until encountering the end of a line."
+  (interactive "p")
+  (cond ((= (point)
+            (save-excursion
+              (end-of-line)
+              (point)))
+         (kill-region (point) (+ (point) 1)))
+         (t (kill-line-safe nil))))
+
+(defun kill-line-safe (&optional backward)
+  (let* ((target-pos (save-excursion
+                       (cond
+                        (backward (beginning-of-line))
+                        (t        (end-of-line)))
+                       (point)))
+         (to-delete (- target-pos (point)))
+         (to-delete-clamped (generalised-move--clamp-writable to-delete)))
+    (kill-region (point) (+ (point) to-delete-clamped))))
 
 (provide 'generalised-move)
