@@ -14,21 +14,21 @@
   (and (characterp char)
        (eq char ?\C-j)))
 
-(defun generalised-move--char-class (char)
+(defun generalized-move--char-class (char)
   (cond ((char-linebreak-p char) 'linefeed)
         ((char-word-p char) 'word)
         ((char-whitespace-p char) 'whitespace)
         (char 'other)
         (t nil)))
 
-(defun generalised-move--char-class-regex (char-class)
+(defun generalized-move--char-class-regex (char-class)
   (cond ((eq char-class 'linefeed) "\n")
         ((eq char-class 'word) "[[:word:]]")
         ((eq char-class 'whitespace) "[[:space:]]")
         ((eq char-class 'other) "[^\n[:word:][:space:]]")
         (t nil)))
 
-(defun generalised-move--char-class-regex-inverse (char-class)
+(defun generalized-move--char-class-regex-inverse (char-class)
   (cond ((eq char-class 'linefeed) "[^\n]")
         ((eq char-class 'word) "[^[:word:]]")
         ((eq char-class 'whitespace) "[^[:space:]]\\|\n")
@@ -42,16 +42,16 @@
   tabstop-left-offset
   tabstop-right-offset)
 
-(defvar-local generalised-move-split-whitespace t
+(defvar-local generalized-move-split-whitespace nil
   "Whether to treat tabstop columns as boundaries when moving through or killing whitespace")
 
-(defvar-local generalised-move-overwrite-create-tabs nil
+(defvar-local generalized-move-overwrite-create-tabs nil
   "Whether to insert TAB characters, in addition to spaces when required, when killing in overwrite mode")
 
-(defvar-local generalised-move-skip-short-segments t
+(defvar-local generalized-move-skip-short-segments t
   "Whether to aggregate short segments when moving or killing")
 
-(defun generalised-move--char-width (char)
+(defun generalized-move--char-width (char)
   (when char
     (cond ((eq char ?\C-i) tab-width)
           (t 1))))
@@ -72,7 +72,7 @@
     (cond
      ((char-after (point))
       (+ (current-column)
-         (generalised-move--char-width (char-after (point)))
+         (generalized-move--char-width (char-after (point)))
          -1))
      (t (current-column)))
   ))
@@ -114,22 +114,22 @@ The column, if non-nil, will be strictly before or after the character at point.
         (tabstop-left-offset)
         (tabstop-right-offset))
     (when char-at-point
-      (setq class (generalised-move--char-class char-at-point))
+      (setq class (generalized-move--char-class char-at-point))
       (set (cond (backward 'end)
                  (t        'start))
            point)
       (save-excursion
         (goto-char point)
         (setq search-result
-              (cond (backward (re-search-backward (generalised-move--char-class-regex-inverse class) (point-min) t))
-                    (t        (re-search-forward  (generalised-move--char-class-regex-inverse class) (point-max) t))))
+              (cond (backward (re-search-backward (generalized-move--char-class-regex-inverse class) (point-min) t))
+                    (t        (re-search-forward  (generalized-move--char-class-regex-inverse class) (point-max) t))))
         (set (cond (backward 'start)
                    (t        'end))
              (cond (search-result (cond (backward (+ search-result 1))
                                         (t        (- search-result 1))))
                    (t             (cond (backward (point-min))
                                         (t        (point-max)))))))
-      (when (and generalised-move-split-whitespace
+      (when (and generalized-move-split-whitespace
                  (not no-tabstop)
                  (not (minibufferp))
                  (eq class 'whitespace))
@@ -164,7 +164,7 @@ The column, if non-nil, will be strictly before or after the character at point.
       (save-excursion
         (goto-char (segment-start segment))
         (while (< (point) (segment-end segment))
-          (setq width (+ width (generalised-move--char-width (char-after (point)))))
+          (setq width (+ width (generalized-move--char-width (char-after (point)))))
           (forward-char)))
       width)))
 
@@ -174,7 +174,7 @@ The column, if non-nil, will be strictly before or after the character at point.
     (when segment
       (format "%S %s" (segment-string segment) segment))))
 
-(defun generalised-move-debug-segment-point ()
+(defun generalized-move-debug-segment-point ()
   (let ((segment-before (segment-near-point (point) t))
         (segment-after  (segment-near-point (point) nil)))
     (message "%s | %s"
@@ -192,7 +192,7 @@ The column, if non-nil, will be strictly before or after the character at point.
   (forward-char)
   (debug-segment-point))
 
-(defun generalised-word-target (&optional backward no-tabstop)
+(defun generalized-word-target (&optional backward no-tabstop)
   (let* ((segments)
          (first-segment)
          (next-segment))
@@ -218,7 +218,7 @@ The column, if non-nil, will be strictly before or after the character at point.
       (when (get-next-segment)
         (setq first-segment next-segment)
         (push first-segment segments)
-        (when (and generalised-move-skip-short-segments
+        (when (and generalized-move-skip-short-segments
                    (eq 1 (segment-length first-segment)))
           (while (and (get-next-segment)
                       (eq 1 (segment-length next-segment))
@@ -229,7 +229,7 @@ The column, if non-nil, will be strictly before or after the character at point.
             (push next-segment segments))))
       segments)))
 
-(defun generalised-move--clamp-writable (N)
+(defun generalized-move--clamp-writable (N)
   "Returns a relative character displacement with absolute value less than or equal to N
 consisting of writable characters from point."
   (let ((x 0)
@@ -245,8 +245,8 @@ consisting of writable characters from point."
       (setq x (funcall next x)))
     x))
 
-(defun generalised-kill-word (&optional backward)
-  (let* ((segments (generalised-word-target backward (not backward)))
+(defun generalized-kill-word (&optional backward)
+  (let* ((segments (generalized-word-target backward (not backward)))
          (target-pos (when segments
                        (funcall
                         (cond (backward #'segment-start)
@@ -255,7 +255,7 @@ consisting of writable characters from point."
          (to-delete (when target-pos
                       (- target-pos (point))))
          (to-delete-clamped (when to-delete
-                              (generalised-move--clamp-writable to-delete)))
+                              (generalized-move--clamp-writable to-delete)))
          (to-insert (when segments
                       (cond (overwrite-mode (funcall
                                              (cond (backward #'identity)
@@ -280,16 +280,16 @@ consisting of writable characters from point."
     (when to-insert (insert to-insert))
     (when to-move   (forward-char to-move))))
 
-(defun generalised-backward-kill-word ()
+(defun generalized-backward-kill-word ()
   (interactive)
-  (generalised-kill-word t))
+  (generalized-kill-word t))
 
-(defun generalised-forward-kill-word ()
+(defun generalized-forward-kill-word ()
   (interactive)
-  (generalised-kill-word nil))
+  (generalized-kill-word nil))
 
-(defun generalised-move-by-word (&optional backward)
-  (let* ((segments (generalised-word-target backward nil))
+(defun generalized-move-by-word (&optional backward)
+  (let* ((segments (generalized-word-target backward nil))
          (target-pos (when segments
                        (funcall
                         (cond (backward #'segment-start)
@@ -298,13 +298,13 @@ consisting of writable characters from point."
     (when target-pos
       (goto-char target-pos))))
 
-(defun generalised-backward-word ()
+(defun generalized-backward-word ()
   (interactive)
-  (generalised-move-by-word t))
+  (generalized-move-by-word t))
 
-(defun generalised-forward-word ()
+(defun generalized-forward-word ()
   (interactive)
-  (generalised-move-by-word nil))
+  (generalized-move-by-word nil))
 
 (defun backward-kill-line-safe (arg)
   "Kill chars backward until encountering the end of a line."
@@ -328,7 +328,7 @@ consisting of writable characters from point."
                         (t        (end-of-line)))
                        (point)))
          (to-delete (- target-pos (point)))
-         (to-delete-clamped (generalised-move--clamp-writable to-delete)))
+         (to-delete-clamped (generalized-move--clamp-writable to-delete)))
     (kill-region (point) (+ (point) to-delete-clamped))))
 
-(provide 'generalised-move)
+(provide 'generalized-move)
