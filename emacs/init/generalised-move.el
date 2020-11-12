@@ -173,12 +173,13 @@ The column, if non-nil, will be strictly before or after the character at point.
     (when segment
       (format "%S %s" (segment-string segment) segment))))
 
-(defun debug-segment-point ()
+(defun generalised-move-debug-segment-point ()
   (let ((segment-before (segment-near-point (point) t))
         (segment-after  (segment-near-point (point) nil)))
     (message "%s | %s"
              (format-segment segment-before)
-             (format-segment segment-after))))
+             (format-segment segment-after))
+    nil))
 
 (defun debug-backward-char ()
   (interactive)
