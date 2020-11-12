@@ -62,15 +62,20 @@
     (current-column)))
 
 (defun point-last-column (point)
+  "The last column occupied by the char after the point"
   ;; this doesn't work due to whitespace-mode brokeness
   ;; (+ (current-column)
   ;;    (char-width  (char-after (point)))
   ;;    -1))
   (save-excursion
     (goto-char point)
-    (+ (current-column)
-       (generalised-move--char-width (char-after (point)))
-       -1)))
+    (cond
+     ((char-after (point))
+      (+ (current-column)
+         (generalised-move--char-width (char-after (point)))
+         -1))
+     (t (current-column)))
+  ))
 
 (defun column-point (column start end)
   (save-excursion
