@@ -78,6 +78,7 @@
   ))
 
 (defun column-point (column start end)
+  "Find the point corresponding to a particular column within the range (START, END)"
   (save-excursion
     (goto-char start)
       (while (and (<= (point) end)
