@@ -200,10 +200,10 @@ The column, if non-nil, will be strictly before or after the character at point.
                  ()
                  (setq next-segment
                        (segment-near-point
-                        (cond ((first segments) (funcall
+                        (cond ((car segments) (funcall
                                                  (cond (backward #'segment-start)
                                                        (t        #'segment-end))
-                                                 (first segments)))
+                                                 (car segments)))
                               (t (point)))
                         backward no-tabstop)))
                 (permitted-segment-class
@@ -251,7 +251,7 @@ consisting of writable characters from point."
                        (funcall
                         (cond (backward #'segment-start)
                               (t        #'segment-end))
-                        (first segments))))
+                        (car segments))))
          (to-delete (when target-pos
                       (- target-pos (point))))
          (to-delete-clamped (when to-delete
@@ -271,11 +271,11 @@ consisting of writable characters from point."
                                                       )
                                                     segments))
                                              ))
-                            (t (cond (backward (make-string (or (segment-tabstop-left-offset (first segments)) 0) ? ))
+                            (t (cond (backward (make-string (or (segment-tabstop-left-offset (car segments)) 0) ? ))
                                      (t ""))))))
          (to-move (when (and segments overwrite-mode)
-                    (cond (backward (- (or (segment-tabstop-left-offset (first segments)) 0) (length to-insert)))
-                          (t        (- (or (segment-tabstop-right-offset (first segments)) 0)))))))
+                    (cond (backward (- (or (segment-tabstop-left-offset (car segments)) 0) (length to-insert)))
+                          (t        (- (or (segment-tabstop-right-offset (car segments)) 0)))))))
     (when to-delete-clamped (kill-region (point) (+ (point) to-delete-clamped)))
     (when to-insert (insert to-insert))
     (when to-move   (forward-char to-move))))
@@ -294,7 +294,7 @@ consisting of writable characters from point."
                        (funcall
                         (cond (backward #'segment-start)
                               (t        #'segment-end))
-                        (first segments)))))
+                        (car segments)))))
     (when target-pos
       (goto-char target-pos))))
 
