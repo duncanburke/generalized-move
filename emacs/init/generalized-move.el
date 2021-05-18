@@ -43,10 +43,12 @@
   tabstop-right-offset)
 
 (defvar-local generalized-move-split-whitespace nil
-  "Whether to treat tabstop columns as boundaries when moving through or killing whitespace")
+  "Whether to treat tabstop columns as boundaries when moving
+through or killing whitespace")
 
 (defvar-local generalized-move-overwrite-create-tabs nil
-  "Whether to insert TAB characters, in addition to spaces when required, when killing in overwrite mode")
+  "Whether to insert TAB characters, in addition to spaces when
+required, when killing in overwrite mode")
 
 (defvar-local generalized-move-skip-short-segments t
   "Whether to aggregate short segments when moving or killing")
@@ -174,23 +176,23 @@ The column, if non-nil, will be strictly before or after the character at point.
     (when segment
       (format "%S %s" (segment-string segment) segment))))
 
-(defun generalized-move-debug-segment-point ()
-  (let ((segment-before (segment-near-point (point) t))
-        (segment-after  (segment-near-point (point) nil)))
-    (message "%s | %s"
-             (format-segment segment-before)
-             (format-segment segment-after))
-    nil))
+;; (defun generalized-move-debug-segment-point ()
+;;   (let ((segment-before (segment-near-point (point) t))
+;;         (segment-after  (segment-near-point (point) nil)))
+;;     (message "%s | %s"
+;;              (format-segment segment-before)
+;;              (format-segment segment-after))
+;;     nil))
 
-(defun debug-backward-char ()
-  (interactive)
-  (backward-char)
-  (debug-segment-point))
+;; (defun debug-backward-char ()
+;;   (interactive)
+;;   (backward-char)
+;;   (debug-segment-point))
 
-(defun debug-forward-char ()
-  (interactive)
-  (forward-char)
-  (debug-segment-point))
+;; (defun debug-forward-char ()
+;;   (interactive)
+;;   (forward-char)
+;;   (debug-segment-point))
 
 (defun generalized-word-target (&optional backward no-tabstop)
   (let* ((segments)
@@ -232,14 +234,13 @@ The column, if non-nil, will be strictly before or after the character at point.
 (defun generalized-move--clamp-writable (N)
   "Returns a relative character displacement with absolute value less than or equal to N
 consisting of writable characters from point."
-  (let ((x 0)
-        (end_cond (cond ((>= N 0) (lambda (x) (< x N)))
-                        ((< N 0)  (lambda (x) (> x N)))))
-        (next     (cond ((>= N 0) (lambda (x) (+ x 1)))
-                        ((< N 0)  (lambda (x) (- x 1)))))
-        (test_pos (cond ((>= N 0) (lambda (x) (+ (point) x)))
-                        ((< N 0)  (lambda (x) (+ (point) (funcall next x))))))
-        )
+  (let* ((x 0)
+         (end_cond (cond ((>= N 0) (lambda (x) (< x N)))
+                         ((< N 0)  (lambda (x) (> x N)))))
+         (next     (cond ((>= N 0) (lambda (x) (+ x 1)))
+                         ((< N 0)  (lambda (x) (- x 1)))))
+         (test_pos (cond ((>= N 0) (lambda (x) (+ (point) x)))
+                         ((< N 0)  (lambda (x) (+ (point) (funcall next x)))))))
     (while (and (funcall end_cond x)
                 (not (get-text-property (funcall test_pos x) 'read-only)))
       (setq x (funcall next x)))
@@ -259,10 +260,9 @@ consisting of writable characters from point."
          (to-insert (when segments
                       (cond (overwrite-mode (funcall
                                              (cond (backward #'identity)
-                                                   (t        #'string-reverse))
+                                                   (t        #'reverse))
                                              (apply
-                                              #'concatenate
-                                              'string
+                                              #'concat
                                               (-map (lambda (segment)
                                                       (make-string
                                                        (segment-width segment)
