@@ -1,5 +1,6 @@
 (require 'dash)
 (require 'subr-x)
+(require 'cl-macs)
 
 (defun char-word-p (char)
   (and (characterp char)
@@ -104,7 +105,50 @@ The column, if non-nil, will be strictly before or after the character at point.
               (and (not backward) (> column (point-last-column point))))
       column)))
 
+(defun generalized-move--org-element-at-point (point)
+  (save-excursion
+    (goto-char point)
+    (org-element-context)))
+
+;; (defun org-element-debug (message element)
+;;   (message "%s: %s %s %s"
+;;            message
+;;            (org-element-type element)
+;;            (org-element-property :begin element)
+;;            (org-element-property :end element)))
+
+;; (defun org-debug-element-at-point ()
+;;   (interactive)
+;;   (org-element-debug (format "point %s" (point)) (org-element-context)))
+
+(defun generalized-move--org-segment-at-point (point &optional backward)
+  (when (derived-mode-p 'org-mode)
+    (let ((point-target (if backward (1- point) point)))
+      (when (<= (point-min) point-target (point-max))
+        (let* ((class)
+               (start)
+               (end)
+               (element (generalized-move--org-element-at-point point-target)))
+          (pcase (org-element-type element)
+            ('link
+             (setq class 'word
+                   start (org-element-property :begin element)
+                   end (org-element-property :end element))))
+          (when (and class start end
+                     (< start end)
+                     (if backward
+                         (< start point)
+                       (< point end)))
+            (make-segment :class class
+                          :start start
+                          :end end)))))))
+
 (defun segment-near-point (point &optional backward no-tabstop)
+  (or
+   (generalized-move--org-segment-at-point point backward)
+   (generalized-move--segment-near-point-fallback point backward no-tabstop)))
+
+(defun generalized-move--segment-near-point-fallback (point &optional backward no-tabstop)
   (let ((class)
         (start)
         (end)
@@ -176,13 +220,14 @@ The column, if non-nil, will be strictly before or after the character at point.
     (when segment
       (format "%S %s" (segment-string segment) segment))))
 
-;; (defun generalized-move-debug-segment-point ()
-;;   (let ((segment-before (segment-near-point (point) t))
-;;         (segment-after  (segment-near-point (point) nil)))
-;;     (message "%s | %s"
-;;              (format-segment segment-before)
-;;              (format-segment segment-after))
-;;     nil))
+(defun generalized-move-debug-segment-point ()
+  (interactive)
+  (let ((segment-before (segment-near-point (point) t))
+        (segment-after  (segment-near-point (point) nil)))
+    (message "%s | %s"
+             (format-segment segment-before)
+             (format-segment segment-after))
+    nil))
 
 ;; (defun debug-backward-char ()
 ;;   (interactive)
@@ -248,37 +293,44 @@ consisting of writable characters from point."
 
 (defun generalized-kill-word (&optional backward)
   (let* ((segments (generalized-word-target backward (not backward)))
-         (target-pos (when segments
-                       (funcall
-                        (cond (backward #'segment-start)
-                              (t        #'segment-end))
-                        (car segments))))
-         (to-delete (when target-pos
-                      (- target-pos (point))))
-         (to-delete-clamped (when to-delete
-                              (generalized-move--clamp-writable to-delete)))
-         (to-insert (when segments
-                      (cond (overwrite-mode (funcall
-                                             (cond (backward #'identity)
-                                                   (t        #'reverse))
-                                             (apply
-                                              #'concat
-                                              (-map (lambda (segment)
-                                                      (make-string
-                                                       (segment-width segment)
-                                                       (cond ((eq 'linefeed (segment-class segment)) ?\C-j)
-                                                             (t                                      ? )))
-                                                      )
-                                                    segments))
-                                             ))
-                            (t (cond (backward (make-string (or (segment-tabstop-left-offset (car segments)) 0) ? ))
-                                     (t ""))))))
-         (to-move (when (and segments overwrite-mode)
-                    (cond (backward (- (or (segment-tabstop-left-offset (car segments)) 0) (length to-insert)))
-                          (t        (- (or (segment-tabstop-right-offset (car segments)) 0)))))))
-    (when to-delete-clamped (kill-region (point) (+ (point) to-delete-clamped)))
-    (when to-insert (insert to-insert))
-    (when to-move   (forward-char to-move))))
+         (target-point (when segments
+                         (funcall
+                          (cond (backward #'segment-end)
+                                (t        #'segment-start))
+                          (-last-item segments)))))
+         (when target-point
+           (goto-char target-point))
+         (let* ((target-pos (when segments
+                              (funcall
+                               (cond (backward #'segment-start)
+                                     (t        #'segment-end))
+                               (car segments))))
+                (to-delete (when target-pos
+                             (- target-pos (point))))
+                (to-delete-clamped (when to-delete
+                                     (generalized-move--clamp-writable to-delete)))
+                (to-insert (when segments
+                             (cond (overwrite-mode (funcall
+                                                    (cond (backward #'identity)
+                                                          (t        #'reverse))
+                                                    (apply
+                                                     #'concat
+                                                     (-map (lambda (segment)
+                                                             (make-string
+                                                              (segment-width segment)
+                                                              (cond ((eq 'linefeed (segment-class segment)) ?\C-j)
+                                                                    (t                                      ? )))
+                                                             )
+                                                           segments))
+                                                    ))
+                                   (t (cond (backward (make-string (or (segment-tabstop-left-offset (car segments)) 0) ? ))
+                                            (t ""))))))
+                (to-move (when (and segments overwrite-mode)
+                           (cond (backward (- (or (segment-tabstop-left-offset (car segments)) 0) (length to-insert)))
+                                 (t        (- (or (segment-tabstop-right-offset (car segments)) 0)))))))
+           (when to-delete-clamped (kill-region (point) (+ (point) to-delete-clamped)))
+           (when to-insert (insert to-insert))
+           (when to-move   (forward-char to-move)))))
 
 (defun generalized-backward-kill-word ()
   (interactive)
