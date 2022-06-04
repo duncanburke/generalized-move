@@ -133,7 +133,9 @@ The column, if non-nil, will be strictly before or after the character at point.
             ('link
              (setq class 'word
                    start (org-element-property :begin element)
-                   end (org-element-property :end element))))
+                   end (org-element-property :end element))
+             (unless (equal (char-before end) ?\])
+               (setq end (1- end)))))
           (when (and class start end
                      (< start end)
                      (if backward
