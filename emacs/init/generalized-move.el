@@ -222,6 +222,7 @@ The column, if non-nil, will be strictly before or after the character at point.
     (when segment
       (format "%S %s" (segment-string segment) segment))))
 
+;;;###autoload
 (defun generalized-move-debug-segment-point ()
   (interactive)
   (let ((segment-before (segment-near-point (point) t))
@@ -334,10 +335,12 @@ consisting of writable characters from point."
            (when to-insert (insert to-insert))
            (when to-move   (forward-char to-move)))))
 
+;;;###autoload
 (defun generalized-backward-kill-word ()
   (interactive)
   (generalized-kill-word t))
 
+;;;###autoload
 (defun generalized-forward-kill-word ()
   (interactive)
   (generalized-kill-word nil))
@@ -352,19 +355,23 @@ consisting of writable characters from point."
     (when target-pos
       (goto-char target-pos))))
 
+;;;###autoload
 (defun generalized-backward-word ()
   (interactive)
   (generalized-move-by-word t))
 
+;;;###autoload
 (defun generalized-forward-word ()
   (interactive)
   (generalized-move-by-word nil))
 
+;;;###autoload
 (defun backward-kill-line-safe (arg)
   "Kill chars backward until encountering the end of a line."
   (interactive "p")
   (kill-line-safe t))
 
+;;;###autoload
 (defun forward-kill-line-safe (arg)
   "Kill chars backward until encountering the end of a line."
   (interactive "p")
