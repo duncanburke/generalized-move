@@ -192,20 +192,22 @@ The column, if non-nil, will be strictly before or after the character at point.
         (tabstop-right-offset))
     (when char-at-point
       (setq class (generalized-move--char-class char-at-point))
-      (set (cond (backward 'end)
-                 (t        'start))
-           point)
+      (cond (backward (setq end point))
+            (t        (setq start point)))
       (save-excursion
         (goto-char point)
         (setq search-result
               (cond (backward (re-search-backward (generalized-move--char-class-regex-inverse class) (point-min) t))
                     (t        (re-search-forward  (generalized-move--char-class-regex-inverse class) (point-max) t))))
-        (set (cond (backward 'start)
-                   (t        'end))
-             (cond (search-result (cond (backward (+ search-result 1))
-                                        (t        (- search-result 1))))
-                   (t             (cond (backward (point-min))
-                                        (t        (point-max)))))))
+        (cond
+         (backward
+          (setq start
+                (cond (search-result (+ search-result 1))
+                      (t             (point-min)))))
+         (t
+          (setq end
+                (cond (search-result (- search-result 1))
+                      (t             (point-max)))))))
       (when (and generalized-move-split-whitespace
                  (not no-tabstop)
                  (not (minibufferp))
@@ -214,9 +216,8 @@ The column, if non-nil, will be strictly before or after the character at point.
         (when tabstop-column
           (setq column-point-result (column-point tabstop-column start end))
           (when column-point-result
-            (set (cond (backward 'start)
-                       (t        'end))
-                 (car column-point-result))
+            (cond (backward (setq start (car column-point-result)))
+                  (t        (setq end (car column-point-result))))
             (setq tabstop-left-offset (cadr column-point-result)
                   tabstop-right-offset (caddr column-point-result)))))
       (when class
